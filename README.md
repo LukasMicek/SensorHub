@@ -21,6 +21,10 @@ A .NET 8 Web API for IoT sensor data ingestion with JWT authentication, device A
 # Clone and navigate to project
 cd SensorHub
 
+# Copy environment template and configure
+cp .env.example .env
+# Edit .env and set your secrets (JWT_SECRET, POSTGRES_PASSWORD, etc.)
+
 # Start the application
 docker-compose up --build
 
@@ -28,10 +32,40 @@ docker-compose up --build
 # Swagger UI at http://localhost:5000/swagger
 ```
 
-## Default Admin Credentials
+## Environment Configuration
 
-- **Email**: `admin@sensorhub.local`
-- **Password**: `Admin123!`
+Copy `.env.example` to `.env` and configure:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `POSTGRES_DB` | Yes | Database name |
+| `POSTGRES_USER` | Yes | Database user |
+| `POSTGRES_PASSWORD` | Yes | Database password |
+| `JWT_SECRET` | Yes | JWT signing key (min 32 chars) |
+| `JWT_ISSUER` | No | JWT issuer (default: SensorHub) |
+| `JWT_AUDIENCE` | No | JWT audience (default: SensorHub) |
+| `ASPNETCORE_ENVIRONMENT` | No | Environment (default: Production) |
+| `SEED_ADMIN` | No | Enable admin seeding (default: false) |
+| `SEED_ADMIN_EMAIL` | No | Admin email (only used if SEED_ADMIN=true) |
+| `SEED_ADMIN_PASSWORD` | No | Admin password (only used if SEED_ADMIN=true) |
+
+## Seeding Admin User (Development Only)
+
+Admin seeding only runs when **both** conditions are met:
+1. `ASPNETCORE_ENVIRONMENT=Development`
+2. `SEED_ADMIN=true`
+
+Example `.env` for local development:
+```
+POSTGRES_DB=sensorhub
+POSTGRES_USER=sensorhub
+POSTGRES_PASSWORD=<your-db-password>
+JWT_SECRET=<your-secret-min-32-chars>
+ASPNETCORE_ENVIRONMENT=Development
+SEED_ADMIN=true
+SEED_ADMIN_EMAIL=admin@sensorhub.local
+SEED_ADMIN_PASSWORD=<your-admin-password>
+```
 
 ## API Endpoints
 
@@ -39,6 +73,7 @@ docker-compose up --build
 |--------|----------|------|-------------|
 | POST | `/api/v1/auth/login` | None | Login and get JWT token |
 | POST | `/api/v1/auth/register` | None | Register new user |
+| POST | `/api/v1/auth/assign-role` | Admin | Assign role to user |
 | POST | `/api/v1/devices` | Admin | Create a device |
 | GET | `/api/v1/devices` | Admin | List all devices |
 | POST | `/api/v1/devices/{id}/api-key` | Admin | Generate device API key |
@@ -55,7 +90,7 @@ docker-compose up --build
 ```bash
 curl -X POST http://localhost:5000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@sensorhub.local","password":"Admin123!"}'
+  -d '{"email":"YOUR_ADMIN_EMAIL","password":"YOUR_ADMIN_PASSWORD"}'
 ```
 
 Response:
@@ -112,11 +147,22 @@ curl http://localhost:5000/api/v1/alerts \
 ## Local Development
 
 ```bash
-# Start PostgreSQL
+# Copy and configure environment
+cp .env.example .env
+# Edit .env with your local settings
+
+# Start PostgreSQL only
 docker-compose up postgres -d
 
+# Set environment variables for local run
+export ConnectionStrings__DefaultConnection="Host=localhost;Database=sensorhub;Username=sensorhub;Password=<your-db-password>"
+export Jwt__Secret="<your-secret-min-32-chars>"
+export SEED_ADMIN=true
+export SEED_ADMIN_EMAIL="admin@sensorhub.local"
+export SEED_ADMIN_PASSWORD="<your-admin-password>"
+
 # Run the API
-dotnet run --project src/SensorHub.Api
+ASPNETCORE_ENVIRONMENT=Development dotnet run --project src/SensorHub.Api
 
 # Run tests
 dotnet test
@@ -136,19 +182,9 @@ SensorHub/
 ├── tests/
 │   └── SensorHub.Tests/       # Unit & integration tests
 ├── docker-compose.yml
+├── .env.example               # Environment template
 └── README.md
 ```
-
-## Configuration
-
-Environment variables (set in docker-compose.yml or appsettings.json):
-
-| Variable | Description |
-|----------|-------------|
-| `ConnectionStrings__DefaultConnection` | PostgreSQL connection string |
-| `Jwt__Secret` | JWT signing key (min 32 chars) |
-| `Jwt__Issuer` | JWT issuer |
-| `Jwt__Audience` | JWT audience |
 
 ## Tech Stack
 

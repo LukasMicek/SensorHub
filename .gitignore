@@ -364,6 +364,7 @@ FodyWeavers.xsd
 
 CLAUDE.md
 claude.md
+.claude/
 
 # Environment files with secrets
 .env
