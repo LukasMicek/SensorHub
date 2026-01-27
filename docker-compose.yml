@@ -1,0 +1,37 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/SensorHub.Api/Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=sensorhub;Username=sensorhub;Password=sensorhub
+      - Jwt__Secret=SensorHubSecretKey12345678901234567890!@#$
+      - Jwt__Issuer=SensorHub
+      - Jwt__Audience=SensorHub
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=sensorhub
+      - POSTGRES_USER=sensorhub
+      - POSTGRES_PASSWORD=sensorhub
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sensorhub -d sensorhub"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
