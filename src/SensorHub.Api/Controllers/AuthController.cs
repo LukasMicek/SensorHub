@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using SensorHub.Api.Models;
@@ -48,9 +49,31 @@ public class AuthController(
             return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
         }
 
-        var role = request.Role == "Admin" ? "Admin" : "User";
-        await userManager.AddToRoleAsync(user, role);
+        await userManager.AddToRoleAsync(user, "User");
 
         return Ok(new { message = "User registered successfully" });
+    }
+
+    [HttpPost("assign-role")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> AssignRole([FromBody] AssignRoleRequest request)
+    {
+        var user = await userManager.FindByIdAsync(request.UserId);
+        if (user == null)
+        {
+            return NotFound(new { message = "User not found" });
+        }
+
+        var validRoles = new[] { "Admin", "User" };
+        if (!validRoles.Contains(request.Role))
+        {
+            return BadRequest(new { message = "Invalid role" });
+        }
+
+        var currentRoles = await userManager.GetRolesAsync(user);
+        await userManager.RemoveFromRolesAsync(user, currentRoles);
+        await userManager.AddToRoleAsync(user, request.Role);
+
+        return Ok(new { message = $"Role '{request.Role}' assigned to user" });
     }
 }

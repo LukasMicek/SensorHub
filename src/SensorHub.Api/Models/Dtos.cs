@@ -11,8 +11,11 @@ public record LoginResponse(string Token, DateTime Expiration);
 
 public record RegisterRequest(
     [Required, EmailAddress] string Email,
-    [Required, MinLength(6)] string Password,
-    string? Role = "User");
+    [Required, MinLength(6)] string Password);
+
+public record AssignRoleRequest(
+    [Required] string UserId,
+    [Required] string Role);
 
 // Device DTOs
 public record CreateDeviceRequest(
