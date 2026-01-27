@@ -2,10 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using SensorHub.Api.Data;
 using SensorHub.Api.Models;
 using Testcontainers.PostgreSql;
 
@@ -17,28 +14,13 @@ public class AuthControllerTests : IAsyncLifetime
         .WithImage("postgres:16-alpine")
         .Build();
 
-    private WebApplicationFactory<Program> _factory = null!;
+    private TestWebApplicationFactory _factory = null!;
     private HttpClient _client = null!;
 
     public async Task InitializeAsync()
     {
         await _postgres.StartAsync();
-
-        _factory = new WebApplicationFactory<Program>()
-            .WithWebHostBuilder(builder =>
-            {
-                builder.ConfigureServices(services =>
-                {
-                    var descriptor = services.SingleOrDefault(
-                        d => d.ServiceType == typeof(DbContextOptions<SensorHubDbContext>));
-                    if (descriptor != null)
-                        services.Remove(descriptor);
-
-                    services.AddDbContext<SensorHubDbContext>(options =>
-                        options.UseNpgsql(_postgres.GetConnectionString()));
-                });
-            });
-
+        _factory = new TestWebApplicationFactory(_postgres.GetConnectionString());
         _client = _factory.CreateClient();
     }
 
@@ -47,6 +29,21 @@ public class AuthControllerTests : IAsyncLifetime
         _client.Dispose();
         await _factory.DisposeAsync();
         await _postgres.DisposeAsync();
+    }
+
+    private async Task<ApplicationUser> CreateTestAdmin(string email, string password)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+        if (!await roleManager.RoleExistsAsync("Admin"))
+            await roleManager.CreateAsync(new IdentityRole("Admin"));
+
+        var admin = new ApplicationUser { UserName = email, Email = email };
+        await userManager.CreateAsync(admin, password);
+        await userManager.AddToRoleAsync(admin, "Admin");
+        return admin;
     }
 
     [Fact]
@@ -132,6 +129,10 @@ public class AuthControllerTests : IAsyncLifetime
     [Fact]
     public async Task AssignRole_AdminCanAssignRoles()
     {
+        const string adminEmail = "testadmin@example.com";
+        const string adminPassword = "AdminTest123!";
+        await CreateTestAdmin(adminEmail, adminPassword);
+
         await _client.PostAsJsonAsync("/api/v1/auth/register", new
         {
             Email = "targetuser@example.com",
@@ -140,8 +141,8 @@ public class AuthControllerTests : IAsyncLifetime
 
         var adminLoginResponse = await _client.PostAsJsonAsync("/api/v1/auth/login", new
         {
-            Email = "admin@sensorhub.local",
-            Password = "Admin123!"
+            Email = adminEmail,
+            Password = adminPassword
         });
         var adminLoginResult = await adminLoginResponse.Content.ReadFromJsonAsync<LoginResponse>();
 
