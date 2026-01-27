@@ -39,7 +39,8 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 // We support two authentication methods:
 // 1. JWT Bearer tokens - for web/mobile app users (Admin, User roles)
 // 2. Device API Keys - for IoT devices sending sensor data
-var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "DefaultDevSecretKey12345678901234567890";
+var jwtSecret = builder.Configuration["Jwt:Secret"]
+    ?? throw new InvalidOperationException("Jwt:Secret is required. Set via environment variable Jwt__Secret.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "SensorHub";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "SensorHub";
 
@@ -136,14 +137,22 @@ using (var scope = app.Services.CreateScope())
     if (!await roleManager.RoleExistsAsync("User"))
         await roleManager.CreateAsync(new IdentityRole("User"));
 
-    // Seed a default admin user for testing
-    // In production, you'd want to change this password or use a different approach
-    var adminEmail = "admin@sensorhub.local";
-    if (await userManager.FindByEmailAsync(adminEmail) == null)
+    // Seed admin user only in Development when SEED_ADMIN=true
+    var seedAdmin = builder.Configuration["SEED_ADMIN"]?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+    if (app.Environment.IsDevelopment() && seedAdmin)
     {
-        var admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail };
-        await userManager.CreateAsync(admin, "Admin123!");
-        await userManager.AddToRoleAsync(admin, "Admin");
+        var adminEmail = builder.Configuration["SEED_ADMIN_EMAIL"];
+        var adminPassword = builder.Configuration["SEED_ADMIN_PASSWORD"];
+
+        if (!string.IsNullOrEmpty(adminEmail) && !string.IsNullOrEmpty(adminPassword))
+        {
+            if (await userManager.FindByEmailAsync(adminEmail) == null)
+            {
+                var admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail };
+                await userManager.CreateAsync(admin, adminPassword);
+                await userManager.AddToRoleAsync(admin, "Admin");
+            }
+        }
     }
 }
 
