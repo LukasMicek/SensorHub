@@ -173,6 +173,9 @@ app.UseAuthorization();
 // Map controller routes (e.g., /api/v1/devices)
 app.MapControllers();
 
+// Health endpoint for container orchestration
+app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+
 app.Run();
 
 // This partial class declaration allows integration tests to reference Program
