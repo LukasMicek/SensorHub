@@ -82,6 +82,23 @@ SEED_ADMIN_PASSWORD=<your-admin-password>
 | POST | `/api/v1/alert-rules` | Admin | Create alert rule |
 | GET | `/api/v1/alert-rules` | Admin | List alert rules |
 | GET | `/api/v1/alerts` | User/Admin | List triggered alerts |
+| GET | `/health` | None | Health check endpoint |
+
+## Health Check
+
+The API exposes a `/health` endpoint for container orchestration and monitoring:
+
+```bash
+curl http://localhost:5000/health
+# Response: {"status":"healthy"}
+```
+
+In Docker, check container health status:
+```bash
+docker-compose ps
+# Or
+docker inspect --format='{{.State.Health.Status}}' sensorhub-api-1
+```
 
 ## Demo Flow
 
