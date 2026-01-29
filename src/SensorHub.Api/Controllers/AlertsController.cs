@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SensorHub.Api.Data;
 using SensorHub.Api.Models;
+using SensorHub.Api.Validation;
 
 namespace SensorHub.Api.Controllers;
 
@@ -17,6 +18,10 @@ public class AlertsController(SensorHubDbContext db) : ControllerBase
         [FromQuery] bool? acknowledged = null,
         [FromQuery] int limit = 100)
     {
+        var validationError = QueryValidator.ValidateLimit(limit);
+        if (validationError != null)
+            return validationError;
+
         var query = db.Alerts.AsQueryable();
 
         if (deviceId.HasValue)
