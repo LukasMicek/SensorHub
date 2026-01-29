@@ -70,12 +70,12 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// Register our application services for dependency injection
 // Scoped = one instance per HTTP request
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<AlertService>();
 
 // Controllers and Swagger/OpenAPI documentation
+builder.Services.AddProblemDetails();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -116,12 +116,7 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// =============================================================================
-// DATABASE MIGRATION & SEEDING
-// =============================================================================
 
-// Apply any pending database migrations and seed initial data
-// This runs on every startup - migrations are idempotent (safe to run multiple times)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SensorHubDbContext>();
@@ -156,21 +151,13 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// =============================================================================
-// HTTP REQUEST PIPELINE
-// =============================================================================
 
-// Enable Swagger UI for API documentation and testing
 app.UseSwagger();
 app.UseSwaggerUI();
 
-// Authentication must come before Authorization
-// Authentication = "Who are you?" (validates JWT/API key)
-// Authorization = "What can you do?" (checks roles/policies)
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map controller routes (e.g., /api/v1/devices)
 app.MapControllers();
 
 // Health endpoint for container orchestration
@@ -178,6 +165,5 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
 app.Run();
 
-// This partial class declaration allows integration tests to reference Program
-// and create a test server using WebApplicationFactory<Program>
+
 public partial class Program { }
