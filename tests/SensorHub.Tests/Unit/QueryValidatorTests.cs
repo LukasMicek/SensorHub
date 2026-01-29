@@ -22,10 +22,18 @@ public class QueryValidatorTests
     [InlineData(-100)]
     [InlineData(501)]
     [InlineData(1000)]
-    public void ValidateLimit_InvalidValues_ReturnsBadRequest(int limit)
+    public void ValidateLimit_InvalidValues_ReturnsBadRequestWithProblemDetails(int limit)
     {
         var result = QueryValidator.ValidateLimit(limit);
+
         result.Should().BeOfType<BadRequestObjectResult>();
+        var badRequest = (BadRequestObjectResult)result!;
+        badRequest.Value.Should().BeOfType<ProblemDetails>();
+
+        var problem = (ProblemDetails)badRequest.Value!;
+        problem.Status.Should().Be(400);
+        problem.Title.Should().Be("Invalid limit");
+        problem.Detail.Should().Contain("Limit must be between 1 and 500");
     }
 
     [Fact]
@@ -48,13 +56,21 @@ public class QueryValidatorTests
     }
 
     [Fact]
-    public void ValidateDateRange_FromGreaterThanTo_ReturnsBadRequest()
+    public void ValidateDateRange_FromGreaterThanTo_ReturnsBadRequestWithProblemDetails()
     {
         var from = DateTime.UtcNow.AddDays(1);
         var to = DateTime.UtcNow;
 
         var result = QueryValidator.ValidateDateRange(from, to);
+
         result.Should().BeOfType<BadRequestObjectResult>();
+        var badRequest = (BadRequestObjectResult)result!;
+        badRequest.Value.Should().BeOfType<ProblemDetails>();
+
+        var problem = (ProblemDetails)badRequest.Value!;
+        problem.Status.Should().Be(400);
+        problem.Title.Should().Be("Invalid date range");
+        problem.Detail.Should().Contain("'from' must be less than or equal to 'to'");
     }
 
     [Fact]

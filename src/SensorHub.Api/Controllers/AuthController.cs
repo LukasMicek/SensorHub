@@ -18,7 +18,10 @@ public class AuthController(
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user == null || !await userManager.CheckPasswordAsync(user, request.Password))
         {
-            return Unauthorized(new { message = "Invalid email or password" });
+            return Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "Authentication failed",
+                detail: "Invalid email or password");
         }
 
         var roles = await userManager.GetRolesAsync(user);
@@ -34,7 +37,10 @@ public class AuthController(
         var existingUser = await userManager.FindByEmailAsync(request.Email);
         if (existingUser != null)
         {
-            return BadRequest(new { message = "User already exists" });
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Registration failed",
+                detail: "User already exists");
         }
 
         var user = new ApplicationUser
@@ -46,7 +52,10 @@ public class AuthController(
         var result = await userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
         {
-            return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Registration failed",
+                detail: string.Join("; ", result.Errors.Select(e => e.Description)));
         }
 
         await userManager.AddToRoleAsync(user, "User");
@@ -61,13 +70,19 @@ public class AuthController(
         var user = await userManager.FindByIdAsync(request.UserId);
         if (user == null)
         {
-            return NotFound(new { message = "User not found" });
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "User not found",
+                detail: "The specified user does not exist");
         }
 
         var validRoles = new[] { "Admin", "User" };
         if (!validRoles.Contains(request.Role))
         {
-            return BadRequest(new { message = "Invalid role" });
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid role",
+                detail: $"Role must be one of: {string.Join(", ", validRoles)}");
         }
 
         var currentRoles = await userManager.GetRolesAsync(user);
