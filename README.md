@@ -203,6 +203,23 @@ SensorHub/
 └── README.md
 ```
 
+## Database Migrations
+
+Migrations are applied automatically on app startup. To manage migrations manually:
+
+```bash
+cd src/SensorHub.Api
+
+# Add a new migration
+Jwt__Secret="dummy" dotnet ef migrations add MigrationName --output-dir Data/Migrations
+
+# Apply migrations to database
+Jwt__Secret="dummy" ConnectionStrings__DefaultConnection="Host=localhost;..." dotnet ef database update
+
+# Or via docker-compose (migrations run on startup)
+docker-compose up
+```
+
 ## Tech Stack
 
 - .NET 8 Web API

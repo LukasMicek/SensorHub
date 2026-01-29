@@ -25,7 +25,7 @@ public class SensorHubDbContext : IdentityDbContext<ApplicationUser>
             e.Property(d => d.Name).HasMaxLength(100).IsRequired();
             e.Property(d => d.Location).HasMaxLength(200);
             e.Property(d => d.ApiKeyHash).HasMaxLength(256);
-            e.HasIndex(d => d.ApiKeyHash);
+            e.HasIndex(d => d.ApiKeyHash).IsUnique();
         });
 
         builder.Entity<Reading>(e =>
