@@ -21,7 +21,10 @@ public class ReadingsController(SensorHubDbContext db, AlertService alertService
         var deviceIdClaim = User.FindFirst("DeviceId")?.Value;
         if (!Guid.TryParse(deviceIdClaim, out var deviceId))
         {
-            return Unauthorized(new { message = "Invalid device" });
+            return Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "Authentication failed",
+                detail: "Invalid device credentials");
         }
 
         var reading = new Reading
@@ -56,7 +59,10 @@ public class ReadingsController(SensorHubDbContext db, AlertService alertService
         var device = await db.Devices.FindAsync(id);
         if (device == null)
         {
-            return NotFound(new { message = "Device not found" });
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Device not found",
+                detail: "The specified device does not exist");
         }
 
         var query = db.Readings.Where(r => r.DeviceId == id);

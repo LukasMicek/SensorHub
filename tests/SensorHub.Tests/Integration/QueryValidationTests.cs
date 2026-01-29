@@ -85,8 +85,8 @@ public class QueryValidationTests : IAsyncLifetime
         var response = await _client.GetAsync($"/api/v1/devices/{_testDeviceId}/readings?limit={limit}");
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("Limit must be between 1 and 500");
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>();
+        problem!.Detail.Should().Contain("Limit must be between 1 and 500");
     }
 
     [Fact]
@@ -95,8 +95,8 @@ public class QueryValidationTests : IAsyncLifetime
         var response = await _client.GetAsync($"/api/v1/devices/{_testDeviceId}/readings?limit=501");
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("Limit must be between 1 and 500");
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>();
+        problem!.Detail.Should().Contain("Limit must be between 1 and 500");
     }
 
     [Fact]
@@ -116,8 +116,8 @@ public class QueryValidationTests : IAsyncLifetime
         var response = await _client.GetAsync($"/api/v1/devices/{_testDeviceId}/readings?from={from}&to={to}");
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("'from' must be less than or equal to 'to'");
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>();
+        problem!.Detail.Should().Contain("'from' must be less than or equal to 'to'");
     }
 
     [Fact]
@@ -139,8 +139,8 @@ public class QueryValidationTests : IAsyncLifetime
         var response = await _client.GetAsync($"/api/v1/alerts?limit={limit}");
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("Limit must be between 1 and 500");
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>();
+        problem!.Detail.Should().Contain("Limit must be between 1 and 500");
     }
 
     [Fact]
@@ -149,8 +149,8 @@ public class QueryValidationTests : IAsyncLifetime
         var response = await _client.GetAsync("/api/v1/alerts?limit=501");
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("Limit must be between 1 and 500");
+        var problem = await response.Content.ReadFromJsonAsync<ProblemDetailsResponse>();
+        problem!.Detail.Should().Contain("Limit must be between 1 and 500");
     }
 
     [Fact]
@@ -162,4 +162,5 @@ public class QueryValidationTests : IAsyncLifetime
     }
 
     private record LoginResponse(string Token, DateTime Expiration);
+    private record ProblemDetailsResponse(int? Status, string? Title, string? Detail);
 }

@@ -46,7 +46,10 @@ public class DevicesController(SensorHubDbContext db) : ControllerBase
         var device = await db.Devices.FindAsync(id);
         if (device == null)
         {
-            return NotFound(new { message = "Device not found" });
+            return Problem(
+                statusCode: StatusCodes.Status404NotFound,
+                title: "Device not found",
+                detail: "The specified device does not exist");
         }
 
         var apiKey = ApiKeyService.GenerateApiKey();
