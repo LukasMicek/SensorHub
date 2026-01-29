@@ -6,6 +6,7 @@ using SensorHub.Api.Auth;
 using SensorHub.Api.Data;
 using SensorHub.Api.Models;
 using SensorHub.Api.Services;
+using SensorHub.Api.Validation;
 
 namespace SensorHub.Api.Controllers;
 
@@ -48,6 +49,10 @@ public class ReadingsController(SensorHubDbContext db, AlertService alertService
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null)
     {
+        var validationError = QueryValidator.ValidateQuery(limit, from, to);
+        if (validationError != null)
+            return validationError;
+
         var device = await db.Devices.FindAsync(id);
         if (device == null)
         {
