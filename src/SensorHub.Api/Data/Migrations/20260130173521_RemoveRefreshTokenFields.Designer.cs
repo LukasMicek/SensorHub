@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using SensorHub.Api.Data;
@@ -11,9 +12,11 @@ using SensorHub.Api.Data;
 namespace SensorHub.Api.Data.Migrations
 {
     [DbContext(typeof(SensorHubDbContext))]
-    partial class SensorHubDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260130173521_RemoveRefreshTokenFields")]
+    partial class RemoveRefreshTokenFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
