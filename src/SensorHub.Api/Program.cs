@@ -12,10 +12,6 @@ using SensorHub.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// =============================================================================
-// SERVICE REGISTRATION (Dependency Injection Container)
-// =============================================================================
-
 // Database: Configure Entity Framework Core to use PostgreSQL
 // The connection string comes from appsettings.json or environment variables
 builder.Services.AddDbContext<SensorHubDbContext>(options =>
@@ -32,11 +28,10 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
         options.Password.RequireUppercase = true;
         options.Password.RequireLowercase = true;
     })
-    .AddEntityFrameworkStores<SensorHubDbContext>()  // Store users in our PostgreSQL database
+    .AddEntityFrameworkStores<SensorHubDbContext>()  // Store users in PostgreSQL database
     .AddDefaultTokenProviders();  // For password reset tokens, etc.
 
 // Authentication: Configure how users prove their identity
-// We support two authentication methods:
 // 1. JWT Bearer tokens - for web/mobile app users (Admin, User roles)
 // 2. Device API Keys - for IoT devices sending sensor data
 var jwtSecret = builder.Configuration["Jwt:Secret"]
@@ -73,6 +68,8 @@ builder.Services.AddAuthorization();
 // Scoped = one instance per HTTP request
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<AlertService>();
+builder.Services.AddScoped<DeviceService>();
+builder.Services.AddScoped<ReadingService>();
 
 // Controllers and Swagger/OpenAPI documentation
 builder.Services.AddProblemDetails();
