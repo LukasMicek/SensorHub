@@ -1,9 +1,6 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using SensorHub.Api.Auth;
-using SensorHub.Api.Data;
 using SensorHub.Api.Models;
 using SensorHub.Api.Services;
 using SensorHub.Api.Validation;
@@ -12,7 +9,7 @@ namespace SensorHub.Api.Controllers;
 
 [ApiController]
 [Route("api/v1")]
-public class ReadingsController(SensorHubDbContext db, AlertService alertService) : ControllerBase
+public class ReadingsController(DeviceService deviceService, ReadingService readingService) : ControllerBase
 {
     [HttpPost("readings/ingest")]
     [Authorize(AuthenticationSchemes = DeviceApiKeyHandler.SchemeName)]
@@ -27,19 +24,11 @@ public class ReadingsController(SensorHubDbContext db, AlertService alertService
                 detail: "Invalid device credentials");
         }
 
-        var reading = new Reading
-        {
-            Id = Guid.NewGuid(),
-            DeviceId = deviceId,
-            Temperature = request.Temperature,
-            Humidity = request.Humidity,
-            Timestamp = request.Timestamp ?? DateTime.UtcNow
-        };
-
-        db.Readings.Add(reading);
-        await db.SaveChangesAsync();
-
-        await alertService.EvaluateAndCreateAlerts(reading);
+        var reading = await readingService.CreateReading(
+            deviceId,
+            request.Temperature,
+            request.Humidity,
+            request.Timestamp);
 
         return Ok(ToResponse(reading));
     }
@@ -56,7 +45,7 @@ public class ReadingsController(SensorHubDbContext db, AlertService alertService
         if (validationError != null)
             return validationError;
 
-        var device = await db.Devices.FindAsync(id);
+        var device = await deviceService.GetDeviceById(id);
         if (device == null)
         {
             return Problem(
@@ -65,18 +54,7 @@ public class ReadingsController(SensorHubDbContext db, AlertService alertService
                 detail: "The specified device does not exist");
         }
 
-        var query = db.Readings.Where(r => r.DeviceId == id);
-
-        if (from.HasValue)
-            query = query.Where(r => r.Timestamp >= from.Value);
-        if (to.HasValue)
-            query = query.Where(r => r.Timestamp <= to.Value);
-
-        var readings = await query
-            .OrderByDescending(r => r.Timestamp)
-            .Take(limit)
-            .ToListAsync();
-
+        var readings = await readingService.GetReadings(id, limit, from, to);
         return Ok(readings.Select(ToResponse));
     }
 

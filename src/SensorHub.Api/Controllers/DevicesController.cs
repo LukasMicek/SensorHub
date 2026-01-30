@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SensorHub.Api.Data;
 using SensorHub.Api.Models;
 using SensorHub.Api.Services;
 
@@ -10,40 +8,26 @@ namespace SensorHub.Api.Controllers;
 [ApiController]
 [Route("api/v1/devices")]
 [Authorize(Roles = "Admin")]
-public class DevicesController(SensorHubDbContext db) : ControllerBase
+public class DevicesController(DeviceService deviceService) : ControllerBase
 {
     [HttpPost]
     public async Task<ActionResult<DeviceResponse>> CreateDevice([FromBody] CreateDeviceRequest request)
     {
-        var device = new Device
-        {
-            Id = Guid.NewGuid(),
-            Name = request.Name,
-            Location = request.Location,
-            CreatedAt = DateTime.UtcNow,
-            IsActive = true
-        };
-
-        db.Devices.Add(device);
-        await db.SaveChangesAsync();
-
+        var device = await deviceService.CreateDevice(request.Name, request.Location);
         return CreatedAtAction(nameof(GetDevices), new { id = device.Id }, ToResponse(device));
     }
 
     [HttpGet]
     public async Task<ActionResult<List<DeviceResponse>>> GetDevices()
     {
-        var devices = await db.Devices
-            .OrderByDescending(d => d.CreatedAt)
-            .ToListAsync();
-
+        var devices = await deviceService.GetAllDevices();
         return Ok(devices.Select(ToResponse));
     }
 
     [HttpPost("{id:guid}/api-key")]
     public async Task<ActionResult<ApiKeyResponse>> GenerateApiKey(Guid id)
     {
-        var device = await db.Devices.FindAsync(id);
+        var device = await deviceService.GetDeviceById(id);
         if (device == null)
         {
             return Problem(
@@ -52,10 +36,7 @@ public class DevicesController(SensorHubDbContext db) : ControllerBase
                 detail: "The specified device does not exist");
         }
 
-        var apiKey = ApiKeyService.GenerateApiKey();
-        device.ApiKeyHash = ApiKeyService.HashApiKey(apiKey);
-        await db.SaveChangesAsync();
-
+        var apiKey = await deviceService.GenerateApiKey(device);
         return Ok(new ApiKeyResponse(apiKey, "Store this key securely. It won't be shown again."));
     }
 
