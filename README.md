@@ -1,5 +1,7 @@
 # SensorHub
 
+[![CI](https://github.com/LukasMicek/SensorHub/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/SensorHub/actions/workflows/ci.yml)
+
 A .NET 8 Web API for IoT sensor data ingestion with JWT authentication, device API keys, and threshold-based alerting.
 
 ## Features
