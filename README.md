@@ -86,6 +86,14 @@ GitHub Actions runs build + tests on every push/PR to `main`. Testcontainers wor
 
 See [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
+## Postman
+
+Import [`postman/SensorHub.postman_collection.json`](postman/SensorHub.postman_collection.json) into Postman.
+
+Run requests 1-7 in order for the happy path. Variables (`jwt`, `deviceId`, `deviceApiKey`) are set automatically via test scripts.
+
+Default `baseUrl`: `http://localhost:5000`
+
 ## Health Endpoint
 
 ```bash
@@ -99,6 +107,7 @@ curl http://localhost:5000/health
 SensorHub/
 ├── src/SensorHub.Api/        # Web API
 ├── tests/SensorHub.Tests/    # Unit + integration tests
+├── postman/                  # Postman collection
 ├── docker-compose.yml
 └── .env.example
 ```
