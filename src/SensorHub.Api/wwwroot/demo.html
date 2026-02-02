@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SensorHub Demo</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 { color: #333; }
+        h2 { color: #555; margin-top: 30px; }
+
+        .config {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .config label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .config input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .actions { margin: 15px 0; }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover { background: #0055aa; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+
+        .panel {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        th { background: #f9f9f9; }
+        tr:hover { background: #f5f5f5; }
+        tr.clickable { cursor: pointer; }
+        tr.clickable:hover { background: #e8f4ff; }
+        tr.selected { background: #d0e8ff; }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .filters label {
+            display: flex;
+            flex-direction: column;
+            font-size: 0.9em;
+        }
+        .filters input {
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 4px;
+        }
+
+        .error {
+            background: #fee;
+            color: #c00;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .empty {
+            color: #888;
+            font-style: italic;
+            padding: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>SensorHub Demo</h1>
+
+    <div class="config">
+        <label>Base URL</label>
+        <input type="text" id="baseUrl" value="http://localhost:5000">
+
+        <label>JWT Token</label>
+        <input type="text" id="jwt" placeholder="Paste your JWT token here">
+
+        <button onclick="saveConfig()">Save to localStorage</button>
+    </div>
+
+    <div class="actions">
+        <button onclick="loadDevices()">Load Devices</button>
+        <button onclick="loadAlerts()">Load Alerts</button>
+    </div>
+
+    <div id="error"></div>
+
+    <h2>Devices</h2>
+    <div class="panel">
+        <div id="devices-table"></div>
+    </div>
+
+    <h2>Readings</h2>
+    <div class="panel">
+        <div class="filters">
+            <label>
+                Device ID
+                <input type="text" id="readingsDeviceId" placeholder="Select a device above" readonly>
+            </label>
+            <label>
+                Limit
+                <input type="number" id="readingsLimit" value="50" min="1" max="500">
+            </label>
+            <label>
+                From
+                <input type="datetime-local" id="readingsFrom">
+            </label>
+            <label>
+                To
+                <input type="datetime-local" id="readingsTo">
+            </label>
+            <label>
+                &nbsp;
+                <button onclick="loadReadings()" id="loadReadingsBtn" disabled>Load Readings</button>
+            </label>
+        </div>
+        <div id="readings-table"></div>
+    </div>
+
+    <h2>Alerts</h2>
+    <div class="panel">
+        <div id="alerts-table"></div>
+    </div>
+
+    <script>
+        function getBaseUrl() {
+            return document.getElementById('baseUrl').value.replace(/\/$/, '');
+        }
+
+        function getJwt() {
+            return document.getElementById('jwt').value;
+        }
+
+        function saveConfig() {
+            localStorage.setItem('sensorhub_baseUrl', getBaseUrl());
+            localStorage.setItem('sensorhub_jwt', getJwt());
+            alert('Configuration saved!');
+        }
+
+        function loadConfig() {
+            const baseUrl = localStorage.getItem('sensorhub_baseUrl');
+            const jwt = localStorage.getItem('sensorhub_jwt');
+            if (baseUrl) document.getElementById('baseUrl').value = baseUrl;
+            if (jwt) document.getElementById('jwt').value = jwt;
+        }
+
+        async function apiFetch(path, options = {}) {
+            const url = getBaseUrl() + path;
+            const jwt = getJwt();
+
+            const headers = {
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+
+            if (jwt) {
+                headers['Authorization'] = 'Bearer ' + jwt;
+            }
+
+            const response = await fetch(url, { ...options, headers });
+
+            if (!response.ok) {
+                const text = await response.text();
+                let message = `HTTP ${response.status}`;
+                try {
+                    const json = JSON.parse(text);
+                    message = json.detail || json.title || json.message || message;
+                } catch (e) {
+                    if (text) message = text;
+                }
+                throw new Error(message);
+            }
+
+            return response.json();
+        }
+
+        function showError(message) {
+            const el = document.getElementById('error');
+            if (message) {
+                el.innerHTML = '<div class="error">' + escapeHtml(message) + '</div>';
+            } else {
+                el.innerHTML = '';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderTable(containerId, columns, rows, options = {}) {
+            const container = document.getElementById(containerId);
+
+            if (!rows || rows.length === 0) {
+                container.innerHTML = '<div class="empty">No data</div>';
+                return;
+            }
+
+            let html = '<table><thead><tr>';
+            columns.forEach(col => {
+                html += '<th>' + escapeHtml(col.label) + '</th>';
+            });
+            html += '</tr></thead><tbody>';
+
+            rows.forEach((row, index) => {
+                const classes = [];
+                if (options.onRowClick) classes.push('clickable');
+                if (options.selectedIndex === index) classes.push('selected');
+
+                html += '<tr class="' + classes.join(' ') + '" data-index="' + index + '">';
+                columns.forEach(col => {
+                    let value = row[col.key];
+                    if (col.format) value = col.format(value, row);
+                    html += '<td>' + escapeHtml(value ?? '') + '</td>';
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+            if (options.onRowClick) {
+                container.querySelectorAll('tr.clickable').forEach(tr => {
+                    tr.addEventListener('click', () => {
+                        const index = parseInt(tr.dataset.index);
+                        options.onRowClick(rows[index], index);
+                    });
+                });
+            }
+        }
+
+        function formatDate(isoString) {
+            if (!isoString) return '';
+            const d = new Date(isoString);
+            return d.toLocaleString();
+        }
+
+        let devicesData = [];
+        let selectedDeviceIndex = -1;
+
+        async function loadDevices() {
+            showError('');
+            try {
+                devicesData = await apiFetch('/api/v1/devices');
+                selectedDeviceIndex = -1;
+                renderDevices();
+                document.getElementById('readingsDeviceId').value = '';
+                document.getElementById('loadReadingsBtn').disabled = true;
+                document.getElementById('readings-table').innerHTML = '<div class="empty">Select a device to load readings</div>';
+            } catch (e) {
+                showError('Failed to load devices: ' + e.message);
+            }
+        }
+
+        function renderDevices() {
+            renderTable('devices-table', [
+                { key: 'id', label: 'ID' },
+                { key: 'name', label: 'Name' },
+                { key: 'location', label: 'Location' },
+                { key: 'createdAt', label: 'Created At', format: formatDate }
+            ], devicesData, {
+                selectedIndex: selectedDeviceIndex,
+                onRowClick: selectDevice
+            });
+        }
+
+        function selectDevice(device, index) {
+            selectedDeviceIndex = index;
+            renderDevices();
+            document.getElementById('readingsDeviceId').value = device.id;
+            document.getElementById('loadReadingsBtn').disabled = false;
+        }
+
+        async function loadReadings() {
+            showError('');
+            const deviceId = document.getElementById('readingsDeviceId').value;
+            if (!deviceId) {
+                showError('Please select a device first');
+                return;
+            }
+
+            const limit = document.getElementById('readingsLimit').value || 50;
+            const from = document.getElementById('readingsFrom').value;
+            const to = document.getElementById('readingsTo').value;
+
+            let query = `?limit=${limit}`;
+            if (from) query += `&from=${new Date(from).toISOString()}`;
+            if (to) query += `&to=${new Date(to).toISOString()}`;
+
+            try {
+                const readings = await apiFetch(`/api/v1/devices/${deviceId}/readings${query}`);
+                renderTable('readings-table', [
+                    { key: 'id', label: 'ID' },
+                    { key: 'temperature', label: 'Temperature', format: v => v?.toFixed(1) + ' C' },
+                    { key: 'humidity', label: 'Humidity', format: v => v?.toFixed(1) + ' %' },
+                    { key: 'timestamp', label: 'Timestamp', format: formatDate }
+                ], readings);
+            } catch (e) {
+                showError('Failed to load readings: ' + e.message);
+            }
+        }
+
+
+        async function loadAlerts() {
+            showError('');
+            try {
+                const alerts = await apiFetch('/api/v1/alerts?limit=50');
+                renderTable('alerts-table', [
+                    { key: 'id', label: 'ID' },
+                    { key: 'deviceId', label: 'Device ID' },
+                    { key: 'message', label: 'Message' },
+                    { key: 'value', label: 'Value' },
+                    { key: 'createdAt', label: 'Created At', format: formatDate },
+                    { key: 'isAcknowledged', label: 'Acknowledged', format: v => v ? 'Yes' : 'No' }
+                ], alerts);
+            } catch (e) {
+                showError('Failed to load alerts: ' + e.message);
+            }
+        }
+
+        loadConfig();
+    </script>
+</body>
+</html>
