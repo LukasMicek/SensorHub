@@ -4,13 +4,14 @@
 
 IoT sensor data API built with .NET 8. Devices send temperature/humidity readings, the system stores them and triggers alerts when thresholds are exceeded.
 
-## Features
+## Showcase
 
-- JWT authentication (Admin/User roles)
-- Device management with API keys
-- Sensor data ingestion
-- Threshold-based alerts
-- PostgreSQL + EF Core
+| Resource | URL |
+|----------|-----|
+| Demo Page | http://localhost:5000/demo.html |
+| Swagger | http://localhost:5000/swagger |
+| Health | http://localhost:5000/health |
+| Postman | [`postman/SensorHub.postman_collection.json`](postman/SensorHub.postman_collection.json) |
 
 ## Quick Start (Docker)
 
@@ -19,8 +20,6 @@ cp .env.example .env
 # Edit .env with your values
 
 docker-compose up --build
-# API: http://localhost:5000
-# Swagger: http://localhost:5000/swagger
 ```
 
 ## Configuration
@@ -40,34 +39,27 @@ SEED_ADMIN_EMAIL=YOUR_ADMIN_EMAIL
 SEED_ADMIN_PASSWORD=YOUR_ADMIN_PASSWORD
 ```
 
-## API Quick Flow
+**Local development (Windows PowerShell):**
 
-```bash
-# 1. Login
-curl -X POST http://localhost:5000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"YOUR_ADMIN_EMAIL","password":"YOUR_ADMIN_PASSWORD"}'
-
-# 2. Create device (use token from step 1)
-curl -X POST http://localhost:5000/api/v1/devices \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Sensor-01","location":"Warehouse"}'
-
-# 3. Generate device API key
-curl -X POST http://localhost:5000/api/v1/devices/{id}/api-key \
-  -H "Authorization: Bearer YOUR_TOKEN"
-
-# 4. Ingest reading (use device key)
-curl -X POST http://localhost:5000/api/v1/readings/ingest \
-  -H "X-Device-Key: YOUR_DEVICE_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"temperature":25.5,"humidity":60}'
-
-# 5. Check alerts
-curl http://localhost:5000/api/v1/alerts \
-  -H "Authorization: Bearer YOUR_TOKEN"
+```powershell
+$env:Jwt__Secret = "YOUR_JWT_SECRET_MIN_32_CHARS"
+$env:ConnectionStrings__DefaultConnection = "Host=localhost;Database=sensorhub;Username=sensorhub;Password=YOUR_DB_PASSWORD"
+dotnet run --project src/SensorHub.Api
 ```
+
+## Demo Page
+
+1. Start the API: `docker-compose up`
+2. Get a JWT token (Postman or curl)
+3. Open http://localhost:5000/demo.html
+4. Paste JWT and click "Save to localStorage"
+5. Explore devices, readings, and alerts
+
+## Postman
+
+Import [`postman/SensorHub.postman_collection.json`](postman/SensorHub.postman_collection.json).
+
+Run requests 1-7 in order. Variables are set automatically.
 
 ## Tests
 
@@ -75,49 +67,29 @@ curl http://localhost:5000/api/v1/alerts \
 dotnet test
 ```
 
-- **Unit tests**: Fast, use in-memory DB
-- **Integration tests**: Use [Testcontainers](https://testcontainers.com/) to spin up real PostgreSQL - just have Docker running
+- **Unit tests** - in-memory DB, fast
+- **Integration tests** - [Testcontainers](https://testcontainers.com/) spins up real PostgreSQL
 
-75 tests total.
+CI runs unit + integration tests on every push.
 
 ## CI
 
-GitHub Actions runs build + tests on every push/PR to `main`. Testcontainers works out of the box on GitHub runners.
+GitHub Actions builds and tests on push/PR to `master`.
 
 See [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
-
-## Demo Page
-
-A minimal browser UI for testing the API:
-
-1. Start the API: `docker-compose up`
-2. Get a JWT token (use Postman Login or curl)
-3. Open [http://localhost:5000/demo.html](http://localhost:5000/demo.html)
-4. Paste your JWT and click "Save to localStorage"
-5. Click "Load Devices" / "Load Alerts" to explore
-
-## Postman
-
-Import [`postman/SensorHub.postman_collection.json`](postman/SensorHub.postman_collection.json) into Postman.
-
-Run requests 1-7 in order for the happy path. Variables (`jwt`, `deviceId`, `deviceApiKey`) are set automatically via test scripts.
-
-Default `baseUrl`: `http://localhost:5000`
-
-## Health Endpoint
-
-```bash
-curl http://localhost:5000/health
-# {"status":"healthy"}
-```
 
 ## Project Structure
 
 ```
 SensorHub/
-├── src/SensorHub.Api/        # Web API
-├── tests/SensorHub.Tests/    # Unit + integration tests
-├── postman/                  # Postman collection
+├── src/SensorHub.Api/
+│   ├── Controllers/      # API endpoints
+│   ├── Services/         # Business logic
+│   ├── Data/             # EF Core DbContext + migrations
+│   ├── Models/           # Entities + DTOs
+│   └── Auth/             # Device API key handler
+├── tests/SensorHub.Tests/
+├── postman/
 ├── docker-compose.yml
 └── .env.example
 ```
