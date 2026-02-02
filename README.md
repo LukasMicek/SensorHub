@@ -4,6 +4,17 @@
 
 IoT sensor data API built with .NET 8. Devices send temperature/humidity readings, the system stores them and triggers alerts when thresholds are exceeded.
 
+## Features
+
+- JWT authentication with Admin/User roles
+- Device management (create, list, generate API keys)
+- Sensor data ingestion via device API keys
+- Threshold-based alerting (temperature/humidity)
+- Swagger UI for API exploration
+- Static demo page for quick testing
+- Postman collection with auto-set variables
+- Unit + integration tests with Testcontainers
+
 ## Showcase
 
 | Resource | URL |
@@ -70,13 +81,22 @@ dotnet test
 - **Unit tests** - in-memory DB, fast
 - **Integration tests** - [Testcontainers](https://testcontainers.com/) spins up real PostgreSQL
 
-CI runs unit + integration tests on every push.
-
 ## CI
 
-GitHub Actions builds and tests on push/PR to `master`.
+GitHub Actions workflow on every push/PR to `master`:
+1. Restore NuGet packages
+2. Build in Release mode
+3. Run all tests (unit + integration)
 
 See [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+
+## Design Notes
+
+- **JWT + ASP.NET Identity** - Standard approach for user auth, easy role management
+- **Device API keys** - Simpler than JWT for IoT devices, just a header
+- **Service layer** - Keeps controllers thin, business logic testable in isolation
+- **Testcontainers** - Integration tests use real PostgreSQL, catches real bugs
+- **ProblemDetails** - Consistent error responses across all endpoints
 
 ## Project Structure
 
