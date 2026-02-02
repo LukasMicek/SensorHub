@@ -7,7 +7,7 @@ namespace SensorHub.Api.Controllers;
 
 [ApiController]
 [Route("api/v1/devices")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 public class DevicesController(DeviceService deviceService) : ControllerBase
 {
     [HttpPost]
