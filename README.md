@@ -86,6 +86,16 @@ GitHub Actions runs build + tests on every push/PR to `main`. Testcontainers wor
 
 See [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
+## Demo Page
+
+A minimal browser UI for testing the API:
+
+1. Start the API: `docker-compose up`
+2. Get a JWT token (use Postman Login or curl)
+3. Open [http://localhost:5000/demo.html](http://localhost:5000/demo.html)
+4. Paste your JWT and click "Save to localStorage"
+5. Click "Load Devices" / "Load Alerts" to explore
+
 ## Postman
 
 Import [`postman/SensorHub.postman_collection.json`](postman/SensorHub.postman_collection.json) into Postman.
