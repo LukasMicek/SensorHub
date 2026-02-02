@@ -41,7 +41,7 @@ var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "SensorHub";
 
 builder.Services.AddAuthentication(options =>
     {
-        // JWT is the default scheme - used unless another is explicitly specified
+        // JWT is the default scheme
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     })
@@ -50,8 +50,8 @@ builder.Services.AddAuthentication(options =>
         // Configure how JWT tokens are validated
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = true,           // Check the token was issued by us
-            ValidateAudience = true,          // Check the token is meant for us
+            ValidateIssuer = true,           // Check the token was issued by a trusted issuer
+            ValidateAudience = true,          // Check the token is meant for trusted audience
             ValidateLifetime = true,          // Check the token hasn't expired
             ValidateIssuerSigningKey = true,  // Verify the signature
             ValidIssuer = jwtIssuer,
@@ -120,7 +120,7 @@ using (var scope = app.Services.CreateScope())
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-    // Apply migrations - creates/updates database schema
+    // Apply migrations
     db.Database.Migrate();
 
     // Seed roles if they don't exist

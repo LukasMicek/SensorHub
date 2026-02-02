@@ -10,7 +10,7 @@ namespace SensorHub.Api.Auth;
 
 // Custom authentication handler for device API keys.
 // This allows IoT devices to authenticate using a simple API key in the header
-// instead of JWT tokens (which would be overkill for embedded devices).
+// instead of JWT tokens 
 //
 // Usage: Add [Authorize(AuthenticationSchemes = "DeviceApiKey")] to endpoints
 // that should accept device API key authentication.
@@ -48,7 +48,6 @@ public class DeviceApiKeyHandler : AuthenticationHandler<AuthenticationSchemeOpt
         }
 
         // Hash the provided key and look for a matching device in the database
-        // We compare hashes because we never store the actual API key (security best practice)
         var apiKeyHash = ApiKeyService.HashApiKey(apiKey);
         var device = await _db.Devices
             .FirstOrDefaultAsync(d => d.ApiKeyHash == apiKeyHash && d.IsActive);

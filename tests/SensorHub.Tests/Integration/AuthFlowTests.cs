@@ -59,7 +59,7 @@ public class AuthFlowTests : IAsyncLifetime
         // Step 3: Access protected endpoint with token
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", loginResult.Token);
 
-        // User role can access readings endpoint (but needs a device first - let's check we get proper response)
+        // User role can access readings endpoint but needs a device first
         var readingsResponse = await _client.GetAsync($"/api/v1/devices/{Guid.NewGuid()}/readings");
 
         // Should be NotFound (not unauthorized) because user is authenticated but device doesn't exist

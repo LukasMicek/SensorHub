@@ -7,8 +7,6 @@ using SensorHub.Api.Models;
 namespace SensorHub.Api.Services;
 
 // Generates JWT (JSON Web Tokens) for authenticated users.
-// JWTs are self-contained tokens that include user info (claims) and are signed
-// to prevent tampering. The client sends this token with each request.
 public class JwtService(IConfiguration config)
 {
     // Creates a signed JWT token containing user identity and role claims.
@@ -22,7 +20,6 @@ public class JwtService(IConfiguration config)
         var expirationHours = int.Parse(config["Jwt:ExpirationHours"] ?? "1");
 
         // Create signing credentials using HMAC-SHA256 algorithm
-        // The secret key must be at least 256 bits (32 characters) for security
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -31,10 +28,10 @@ public class JwtService(IConfiguration config)
         {
             new(ClaimTypes.NameIdentifier, user.Id),       // User's unique ID
             new(ClaimTypes.Email, user.Email ?? ""),        // User's email
-            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())  // Unique token ID (prevents replay attacks)
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())  // Unique token ID
         };
 
-        // Add role claims - these are checked by [Authorize(Roles = "Admin")] attributes
+        // Add role claims
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
